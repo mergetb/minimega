@@ -1,0 +1,76 @@
+- hosts: [a, b, c, d]
+  become: true
+  vars:
+    a:
+      eth1: 172.30.0.1/24
+      local: 172.30.0.1
+      remote: 
+        - 172.30.0.2
+        - 172.30.0.3
+        - 172.30.0.4
+    b:
+      eth1: 172.30.0.2/24
+      local: 172.30.0.2
+      remote: 
+        - 172.30.0.1
+        - 172.30.0.3
+        - 172.30.0.4
+    c:
+      eth1: 172.30.0.3/24
+      local: 172.30.0.3
+      remote: 
+        - 172.30.0.1
+        - 172.30.0.2
+        - 172.30.0.4
+    d:
+      eth1: 172.30.0.4/24
+      local: 172.30.0.4
+      remote: 
+        - 172.30.0.1
+        - 172.30.0.2
+        - 172.30.0.3
+
+  tasks:
+
+    - name: install software
+      apt:
+        name:
+          - tcpdump
+          - libpcap0.8
+          - qemu-kvm
+          - openvswitch-switch
+          - openvswitch-common
+
+    - name: setup network
+      shell: "{{item}}"
+      loop:
+        - ip link add mega_truss type veth peer merge_truss
+        - ip link set up dev mega_truss
+        - ip link set up dev merge_truss
+        - ip link add mzbr type bridge
+        - ip link set mzbr type bridge vlan_filtering 1
+        - ip link set master mzbr dev merge_truss
+        - ip link set up dev mzbr
+        - ovs-vsctl add-br mega_bridge
+        - ovs-vsctl add-port mega_bridge mega_truss
+        - ip addr add {{vars[inventory_hostname_short].eth1}} dev eth1
+        - ip link set up dev eth1
+        - ip link add vxlan100 type vxlan id 100 dstport 4789 local {{vars[inventory_hostname_short].local}} dev eth1
+        - bridge fdb append 00:00:00:00:00:00 dev vxlan100 dst {{vars[inventory_hostname_short].remote[0]}}
+        - bridge fdb append 00:00:00:00:00:00 dev vxlan100 dst {{vars[inventory_hostname_short].remote[1]}}
+        - bridge fdb append 00:00:00:00:00:00 dev vxlan100 dst {{vars[inventory_hostname_short].remote[2]}}
+        - ip link set up dev vxlan100
+        - ip link set master mzbr dev vxlan100
+        - bridge vlan add vid 100 dev vxlan100
+        - bridge vlan add vid 100 dev merge_truss
+      ignore_errors: true
+
+    - name: fetch default disk
+      get_url:
+        url: https://storage.googleapis.com/minimega-files/generic_vm.iso
+        dest: /tmp/generic_vm.iso
+
+    - name: fetch buster disk
+      get_url:
+        url: https://mirror.deterlab.net/rvn/img/debian-buster.qcow2
+        dest: /tmp/debian-buster.qcow2
