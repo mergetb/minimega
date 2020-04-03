@@ -22,7 +22,7 @@ sufficient. The goal of this test case is to demonstrate interconnecting minimeg
 hosts over VXLAN networks for when the interconnecting testbed network is a 
 routed L3 network.
 
-## Running
+### Running
 
 Note, your machine will need to have a processor that supports nested
 virtualization, and this feature must be enabled, otherwise this will not work.
@@ -47,3 +47,26 @@ mini-fu is not that good yet.
 - ensure that the VMs can indeed talk
 - use tcpdump on the minimega hosts to verify that the traffic is actually 
   transiting the VXLANs
+
+## Questions / Requests for the Minimega Team
+
+1. The plumbing onto a Merge network would be much cleaner if there was an equvalent command to `vm config net 100` that would plumb the virtual nic to a vanilla linux bridge with `vlan_filtering` [enabled](https://github.com/mergetb/minimega/blob/merge/tests/raven/merge-net/setup.yml#L51) through a virtual network device like a tap on [the 100 vlan](https://github.com/mergetb/minimega/blob/merge/tests/raven/merge-net/setup.yml#L65). Is this a feasible thing to support in Minimega?
+
+2. We'll be deploying Minimega in a Merge testbed environment, which means our experiment materialization automation software (called the Cogs) will be 
+    - dynamically provisioning bare metal machines for minimega to run on.
+    - using the minimega API to provision virtual machines and attach them to Merge experiment networks
+
+   While it's possible that the Cogs could run an instance of minimega locally and issue the minimega provisioning commands that would then communicate with the other minimega nodes in the cluster to carry out VM config/launch/etc .... is this the best approach? Is there a minimega RPC mechanism we could use to interact with minimega from the Cogs?
+   
+## A Bit About Merge
+
+The general Merge documentation site is located here
+
+- https://www.mergetb.org
+
+A guided tour of docs that may be interesting from different perspectives.
+
+- Basic concepts: https://www.mergetb.org/concepts/overview
+- Some example experiments: https://www.mergetb.org/xp/topology-modeling
+- A complete walkthrough of creating an experiment with the web interface: https://www.mergetb.org/gui/walkthrough/
+- A development landing page: https://www.mergetb.org/dev/overview/
